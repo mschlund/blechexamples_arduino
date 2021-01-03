@@ -1,0 +1,40 @@
+// blink.blc -- simple onboard LED-blinking
+
+@[CConst (binding ="MILLIS_PER_TICK", header = "env.h")]
+extern const MILLIS_PER_TICK: nat32
+
+@[CFunction (binding = "activateLED()", header = "env.h")]
+extern function activateLED ()
+
+@[CFunction (binding = "deactivateLED()", header = "env.h")]
+extern function deactivateLED ()
+
+function invertLED () (led: bool)
+    led = not led
+end
+
+function toggleLED(led: bool)
+    if led then
+        activateLED()
+    else
+        deactivateLED()
+    end
+end
+
+activity CountDown (ticks: nat32)
+    var steps = ticks
+    repeat
+        await true
+        steps = steps - 1
+    until steps <= 0 end
+end
+
+@[EntryPoint]
+activity Main () ()
+    var led : bool = false
+    repeat
+        run CountDown(500)
+        invertLED()(led)
+        toggleLED(led)
+    end
+end

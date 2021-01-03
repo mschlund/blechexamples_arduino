@@ -1,0 +1,55 @@
+const LEN: nat8 = 8
+const DURATION : nat16 = 500
+
+const C4 : nat32 = 262
+const D4 : nat32 = 294
+const E4 : nat32 = 330
+const F4 : nat32 = 349
+const G4 : nat32 = 392
+const A4 : nat32 = 440
+const B4 : nat32 = 494
+const C5 : nat32 = 523
+
+@[CFunction (binding = "tone($1,$2)", header = "env.h")]
+extern function tone(frequency : nat32, duration: nat64)
+
+@[CConst (binding = "MILLIS_PER_TICK", header = "env.h")]
+extern const MILLIS_PER_TICK: nat32
+
+/// Delays the trail for the given period.
+activity Delay (millis: nat32)
+    var ticks = millis / MILLIS_PER_TICK
+
+    if ticks == 0 then
+        ticks = 1 // Need to wait at least one tick
+    end
+    repeat
+        ticks = ticks - 1
+        await true
+    until ticks == 0 end
+end
+
+activity playMelody (melody : [LEN] nat32)
+    var i : nat8 = 0
+    repeat
+        tone(melody[i], DURATION)
+        i = i + 1
+        run Delay(100)
+    until i > LEN end
+end
+
+@[EntryPoint]
+activity Main () ()
+    @[CInput (binding = "switchActivated", header = "env.h")]
+    extern let switchActivated: bool
+
+    param melody : [LEN] nat32 = {C4, D4, E4, F4, G4, A4, B4, C5}
+    repeat
+        if switchActivated then
+            run playMelody(melody)
+        end
+        run Delay(2000)
+    end
+end
+
+

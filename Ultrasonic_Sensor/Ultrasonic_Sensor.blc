@@ -1,0 +1,101 @@
+
+@[CConst (binding = "MILLIS_PER_TICK", header = "env.h")]
+extern const MILLIS_PER_TICK: nat32
+
+@[CFunction (binding = "activateLED()", header = "env.h")]
+extern function LED_on ()
+
+@[CFunction (binding = "deactivateLED()", header = "env.h")]
+extern function LED_off ()
+
+@[CFunction (binding = "getEchoDuration()", header = "env.h")]
+extern function get_echo_duration () returns nat32
+
+@[CFunction (binding = "writeDist($1)", header = "env.h")]
+extern function write_dist (dist : nat32)
+
+
+// from: https://github.com/frameworklabs/react/blob/master/react.blc
+/// Delays the trail for the given period.
+activity delay (millis: nat32)
+    var ticks = millis / MILLIS_PER_TICK
+
+    if ticks == 0 then
+        ticks = 1 // Need to wait at least one tick
+    end
+    repeat
+        ticks = ticks - 1
+        await true
+    until ticks == 0 end
+end
+
+function cm_from_us (duration : nat32) returns nat32
+    let dist = duration*1000/58309
+    return dist
+end
+
+activity get_mean_dist (nr_echos : nat8) returns nat32
+    var idx : nat8 = 0
+    var sum : nat32 = 0
+    repeat
+        sum = sum + cm_from_us(get_echo_duration())
+        run delay(1)
+        idx = idx + 1
+    until idx >= nr_echos end
+    return sum / nr_echos
+end
+
+function limit_upper (input : nat32, upper_limit : nat32) returns nat32
+    if input > upper_limit then
+        return upper_limit 
+    end
+    return input
+end
+
+activity blink_wrt_dist (dist : nat32)
+    await true
+    if dist > 50 then
+        LED_off() // beyond 50cm we do not blink
+    elseif dist <= 3 then       
+    // if the obstacle is very near, the LED is on continuously
+        LED_on()
+    else
+        run delay(10*dist) // wait until the next flash
+        LED_on()
+        run delay(10) // just a short flash 
+        LED_off()
+    end
+end
+
+activity simple_moving_avg ()
+    var dist : nat32 = 0
+    repeat
+        run dist = get_mean_dist(5)
+        write_dist(dist)
+        run blink_wrt_dist(dist)
+        await true
+    end
+end
+
+activity exp_moving_avg ()
+    var mean_dist = cm_from_us(get_echo_duration())
+    repeat
+        let new_sample = cm_from_us(get_echo_duration())
+        let limited_sample = limit_upper(new_sample, 1000)
+        let float_sample = limited_sample as! float32
+
+        let old_mean = (mean_dist as! float32)
+        let mean_float = 0.6 * old_mean + 0.4 * float_sample
+        mean_dist = mean_float as! nat32
+        
+        write_dist(mean_dist)
+        run blink_wrt_dist(mean_dist)
+        await true
+    end
+end
+
+
+@[EntryPoint]
+activity Main () ()
+    run exp_moving_avg()
+end

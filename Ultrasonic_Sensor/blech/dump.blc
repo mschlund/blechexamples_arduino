@@ -1,0 +1,53 @@
+function swap(i : nat8, j : nat8)(values : [5]nat32)
+    var tmp = values[i]
+    values[i] = values[j]
+    values[j] = tmp
+end
+
+function min(x : nat32, y : nat32) returns nat32
+    if x < y then return x else return y end
+end
+
+// after executing this we have values[i] <= values[j]
+function compareAndSwap(i : nat8, j : nat8)(values : [5]nat32)
+    if values[i] > values[j] then
+        swap(i,j)(values)
+    end
+end
+
+// see https://stackoverflow.com/questions/480960/how-do-i-calculate-the-median-of-five-in-c for a discussion
+function medianOf5(inputArray : [5]nat32) returns nat32
+    var values = inputArray
+    // "match" pairs (0,1) and (2,3)
+    compareAndSwap(0, 1)(values) 
+    compareAndSwap(2, 3)(values)
+
+    // the smaller elements of the two pairs sit at 0 and 2
+    if values[2] < values[0] then
+        // 2 cannot be the median, 3 is "unmatched", i.e. in the "else"-branch 1 is the "unmatched" one
+        // the next comparison is always between 0 and 1,
+        // i.e. then between the new (4th value) and the unmatched one, hence move the unmatched 3 to the 1-place
+        swap(1,3)(values)
+        values[2] = values[0] // save the not-eliminated value
+    end
+
+    values[0] = values[4] // move the new value into the place where the next comparison happens
+
+    compareAndSwap(0, 1)(values)
+    
+    if values[0] < values[2] then
+        // 0 is the smallest -> overwrite it ("eliminate")
+        swap(1,3)(values)
+        values[0] = values[2]
+    end
+
+    return min(values[0], values[3])
+end
+
+activity getMedianDuration () () returns nat32
+    run var values = sendSeveralEchos()
+    var medianDuration = medianOf5(values)  // this will raise a compile-time-error if NR_ECHOS is different from 5
+    writeDist(cm_from_us(medianDuration))
+    return medianDuration
+end
+

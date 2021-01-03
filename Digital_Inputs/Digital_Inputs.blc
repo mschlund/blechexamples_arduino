@@ -1,0 +1,44 @@
+
+@[CConst (binding = "MILLIS_PER_TICK", header = "env.h")]
+extern const MILLIS_PER_TICK: nat32
+
+@[CFunction (binding = "activateLED()", header = "env.h")]
+extern function LED_on ()
+
+@[CFunction (binding = "deactivateLED()", header = "env.h")]
+extern function LED_off ()
+
+// from: https://github.com/frameworklabs/react/blob/master/react.blc
+/// Delays the trail for the given period.
+activity Delay (millis: nat32)
+    var ticks = millis / MILLIS_PER_TICK
+
+    if ticks == 0 then
+        ticks = 1 // Need to wait at least one tick
+    end
+    repeat
+        ticks = ticks - 1
+        await true
+    until ticks == 0 end
+end
+
+activity toggleLED(state_in : bool)(state_out : bool)
+    @[CInput (binding ="buttonPressed", header = "env.h")]
+    extern let buttonPressed: bool
+    await buttonPressed
+    state_out = not state_in
+end
+
+@[EntryPoint]
+activity Main () ()
+    var state : bool = false
+    repeat
+        run toggleLED(prev state)(state)
+        if state then
+            LED_on()
+        else
+            LED_off()
+        end
+        run Delay(200)
+    end
+end

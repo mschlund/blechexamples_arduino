@@ -1,0 +1,31 @@
+
+@[CConst (binding ="MILLIS_PER_TICK", header = "env.h")]
+extern const MILLIS_PER_TICK: nat32
+
+@[CFunction (binding = "setLight($1)", header = "env.h")]
+extern function setLight(ledVal: [3]nat8)
+
+activity fade_colors(ledVal_in : [3]nat8)(ledVal_out : [3]nat8 )
+    var ledIdx : nat8 = 0
+    repeat
+        let nextLEDIdx = (ledIdx+1) % 3
+        var cnt : int16 = 0
+        while cnt < 255 repeat
+            ledVal_out[ledIdx] = ledVal_in[ledIdx] - 1
+            ledVal_out[nextLEDIdx] = ledVal_in[nextLEDIdx] + 1
+            await true
+            setLight(ledVal_out)
+            cnt = cnt + 1
+        end
+        await true
+        ledIdx = ledIdx + 1
+    until ledIdx > 2 end
+end
+
+@[EntryPoint]
+activity Main () ()
+    var ledValues : [3]nat8 = {255, 0, 0}
+    repeat
+        run fade_colors(prev ledValues)(ledValues)
+    end
+end

@@ -1,0 +1,93 @@
+
+@[CConst (binding = "MILLIS_PER_TICK", header = "env.h")]
+extern const MILLIS_PER_TICK: nat32
+
+@[CFunction (binding = "activateLED()", header = "env.h")]
+extern function LED_on ()
+
+@[CFunction (binding = "deactivateLED()", header = "env.h")]
+extern function LED_off ()
+
+// from: https://github.com/frameworklabs/react/blob/master/react.blc
+/// Delays the trail for the given period.
+activity Delay (millis: nat32)
+    var ticks = millis / MILLIS_PER_TICK
+
+    if ticks == 0 then
+        ticks = 1 // Need to wait at least one tick
+    end
+    repeat
+        ticks = ticks - 1
+        await true
+    until ticks == 0 end
+end
+
+activity blink_LED(frequency : nat16)
+    repeat
+        LED_on()
+        run Delay(frequency)
+        LED_off()
+        run Delay(frequency)
+    end
+end
+
+function switch_LED (state : bool)
+    if state then
+        LED_on()
+    else
+        LED_off()
+    end
+end
+
+// detect whether a single or double click has happened
+// a doubleclick is defined as a sequence of button presses+releases within 600 ms
+// for example: _____----___------___
+// where
+// _ : buttonPressed==false and
+// - : buttonPressed==true
+activity clickDetection (buttonPressed : bool) () returns nat8
+    var nrClicks : nat8
+    var noClick : bool
+    cobegin weak
+        await buttonPressed
+        await not buttonPressed
+        nrClicks = nrClicks + 1
+        await buttonPressed
+        await not buttonPressed
+        nrClicks = nrClicks + 1
+    with weak
+        run Delay(600) // clicks have to happen within 600ms
+        noClick = true
+    end
+
+    if noClick then
+        if nrClicks > 0 then
+            return 1
+        else
+            return 0
+        end
+    else
+        return nrClicks
+    end
+end
+
+
+@[EntryPoint]
+activity Main () ()
+    var state = false
+    repeat
+        @[CInput (binding ="buttonPressed", header = "env.h")]
+        extern let buttonPressed: bool
+        run let nrClicks = clickDetection(buttonPressed)
+        if nrClicks == 2 then
+            cobegin weak
+                run blink_LED(70)
+            with
+                run Delay(2000)
+            end
+        elseif nrClicks == 1 then
+            state = not state
+        end
+        switch_LED(state)
+    end
+end
