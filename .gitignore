@@ -25,4 +25,8 @@ Ultrasonic_Sensor.h
 Ultrasonic_Sensor.c
 cbmc*
 
+DHT11_MQTT.h
+DHT11_MQTT.c
+
+*_Config.h
 

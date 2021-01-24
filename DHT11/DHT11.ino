@@ -1,9 +1,11 @@
+#include <Arduino.h>
+
 extern "C" {
   #include "env.h"
   #include "DHT11.h"
 }
 
-#define SENSOR_PIN 2
+#define SENSOR_PIN D2
 
 blc_nat32 get_duration_of_high(void) {
   return pulseIn(SENSOR_PIN, HIGH);

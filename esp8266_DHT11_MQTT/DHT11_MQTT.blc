@@ -1,0 +1,156 @@
+struct EnvCond
+    var temperature : bits32
+    var humidity : bits32
+end
+
+const NR_BITS : nat8 = 40
+const NR_BYTES : nat8 = NR_BITS / 8
+const THRESHOLD_FOR_ONE : nat32 = 50
+
+@[CConst (binding = "MILLIS_PER_TICK", header = "env.h")]
+extern const MILLIS_PER_TICK: nat32
+
+@[CFunction (binding = "get_duration_of_high()", header = "env.h")]
+extern function get_duration_of_high () returns nat32
+
+@[CFunction (binding = "write_to_pin($1)", header = "env.h")]
+extern function write_to_pin (level : bool)
+
+@[CFunction (binding = "activate_input()", header = "env.h")]
+extern function activate_input ()
+
+@[CFunction (binding = "print_conditions_raw($1, $2)", header = "Utils.h")]
+extern function print_conditions_raw(temperature : bits32, humidity : bits32)
+
+@[CFunction (binding = "print_conditions($1, $2)", header = "Utils.h")]
+extern function print_conditions(temperature : bits32, humidity : bits32)
+
+@[CFunction (binding = "interrupts_on()", header = "env.h")]
+extern function interrupts_on ()
+
+@[CFunction (binding = "interrupts_off()", header = "env.h")]
+extern function interrupts_off ()
+
+@[CFunction (binding = "publish_conditions($1, $2)", header = "Utils.h")]
+extern function publish_conditions(temperature : bits32, humidity : bits32)  
+
+@[CFunction (binding = "reconnect()", header = "Utils.h")]
+extern function reconnect ()
+
+@[CFunction (binding ="client_loop()", header = "Utils.h")]
+extern function client_loop ()
+
+@[CFunction (binding ="is_client_connected()", header = "Utils.h")]
+extern function is_client_connected () returns bool
+
+
+// from: https://github.com/frameworklabs/react/blob/master/react.blc
+/// Delays the trail for the given period.
+activity delay (millis: nat32)
+    var ticks = millis / MILLIS_PER_TICK
+
+    if ticks == 0 then
+        ticks = 1 // Need to wait at least one tick
+    end
+    repeat
+        ticks = ticks - 1
+        await true
+    until ticks == 0 end
+end
+
+activity initiate_mesurement()() returns bool
+    write_to_pin(false)
+    run delay(20)
+    activate_input()
+    var initial_sequence = get_duration_of_high()
+    if initial_sequence > 100 then
+        return false // timeout or sth wrong ... pulse should be ~80µs
+    else
+        return true
+    end
+end
+
+function get_bits () (bitfield : [NR_BITS]nat8)
+    // see https://github.com/olewolf/DHT_nonblocking/blob/master/dht_nonblocking.cpp
+    // or the simpler https://www.keuwl.com/electronics/rduino/bluet/08-dht11/
+    // read in NR_BITS (=40) bits into the field supplied
+    // each bit is encoded as a 50µs stream of LOWs, followed by a sequence of HIGHs
+    // if the HIGHs take time ~28µs -> the bit is a 0
+    // if the HIGHs take time ~70µs -> the bit is a 1
+    // so decide based on the time the level was HIGH:
+    // if > 50µs (resp. the time of state "LOW") -> we have a 0, else we have a 1
+    // reading all the 40 bits takes ~40*100µs = 4ms and so w.r.t. Blech, reading is logically "instantanous"
+    interrupts_off() // time-critical section .. we don't want to be disturbed
+    var i : nat8 = 0
+    repeat
+        var duration = get_duration_of_high()
+        if duration > THRESHOLD_FOR_ONE then
+            bitfield[i] = 1
+        else
+            bitfield[i] = 0
+        end
+        i = i + 1
+    until i >= NR_BITS end
+    interrupts_on()
+end
+
+function extract_bytes (bitfield : [NR_BITS]nat8) (data : [NR_BYTES]bits32) returns bool
+    var i : nat8 = 0
+    repeat
+        data[i/8] = data[i/8] << 1
+        if bitfield[i] == 1 then
+            data[i/8] = data[(i)/8] | 1
+        end
+        i = i + 1
+    until i >= NR_BITS end
+
+    // validate checksum
+    var checksum_valid : bool
+    checksum_valid = (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF))
+    if checksum_valid then
+        return true
+    else
+        return false
+    end
+end
+
+activity measure () (environment_conditions : EnvCond) returns bool
+    var bitfield : [NR_BITS]nat8
+    run let init_valid = initiate_mesurement()
+    if not init_valid then
+        return false
+    end
+    get_bits()(bitfield)
+
+    // bit-capturing was successful -> now compute the temperature and humidity-values
+    var data : [NR_BYTES]bits32
+    var checksum_correct = extract_bytes(bitfield)(data)
+    if checksum_correct then
+        environment_conditions.humidity = data[0]
+        environment_conditions.temperature = data[2]
+        return true
+    else
+        return false
+    end
+
+end
+
+@[EntryPoint]
+activity Main ()
+    var environment_conditions : EnvCond = {temperature = 0, humidity = 0}
+    repeat
+        run var status = measure()(environment_conditions)
+        if not status then
+            // checksum-error!
+            environment_conditions.humidity = -1 // 0xFFFF
+            environment_conditions.temperature = -1 // 0xFFFF
+        end
+        run delay(2000) // wait some time until the next measurement
+        publish_conditions(environment_conditions.temperature, environment_conditions.humidity)
+
+        if (not is_client_connected()) then
+            reconnect();
+        end
+        client_loop();
+    end
+end
