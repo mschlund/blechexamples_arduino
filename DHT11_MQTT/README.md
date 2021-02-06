@@ -1,4 +1,4 @@
-# esp8266_DHT11_MQTT
+# DHT11_MQTT
 
 Using the ESO8266 and its WIFI-capabilities with Blech.
 This example uses the same Blech-code as the
