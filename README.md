@@ -23,5 +23,5 @@ All projects written for an Arduino-Board using [Blech](https://www.blech-lang.o
 5. passive_buzzer: Playing sound via a passive buzzer. [Blogpost](https://maximilianschlund.wordpress.com/2020/11/20/lesson-4-passive-buzzer-and-tilt-ball-switch/)
 6. Ultrasonic_Sensor: Reading echoes from an ultrasonic sensor. [Blogpost](https://maximilianschlund.wordpress.com/2020/11/27/lesson-5-ultrasonic-sensor/)
 7. DHT11: Measure temperature/humidity via a DHT11-sensor. [Blogpost](https://maximilianschlund.wordpress.com/2020/12/05/lesson-6-measuring-temperature-and-humidity-using-the-dht11/)
-
+8. DHT11_MQTT: Using the DHT11-sensor and sending its measurements to an MQTT-broker. [Blogpost] (https://maximilianschlund.wordpress.com/2021/01/24/lesson-7-blech-on-the-esp8266-measuring-temperature-humidity-and-sending-via-mqtt/)
 
