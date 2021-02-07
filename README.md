@@ -5,7 +5,7 @@ Each project resides in a sub-directory and is equipped with a Makefile and READ
 
 ## Building
 
-The workflow is the same for all projects.
+The workflow is (almost) the same for all projects.
 
 ```
 $ cd PROJECTNAME_HERE
