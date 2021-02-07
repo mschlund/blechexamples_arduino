@@ -7,41 +7,47 @@ const NR_BITS : nat8 = 40
 const NR_BYTES : nat8 = NR_BITS / 8
 const THRESHOLD_FOR_ONE : nat32 = 50
 
-@[CConst (binding = "MILLIS_PER_TICK", header = "env.h")]
+@[CConst (binding = "MILLIS_PER_TICK", header = "env.hpp")]
 extern const MILLIS_PER_TICK: nat32
 
-@[CFunction (binding = "get_duration_of_high()", header = "env.h")]
+@[CFunction (binding = "get_duration_of_high()", header = "env.hpp")]
 extern function get_duration_of_high () returns nat32
 
-@[CFunction (binding = "write_to_pin($1)", header = "env.h")]
+@[CFunction (binding = "write_to_pin($1)", header = "env.hpp")]
 extern function write_to_pin (level : bool)
 
-@[CFunction (binding = "activate_input()", header = "env.h")]
+@[CFunction (binding = "activate_input()", header = "env.hpp")]
 extern function activate_input ()
 
-@[CFunction (binding = "print_conditions_raw($1, $2)", header = "Utils.h")]
+@[CFunction (binding = "print_conditions_raw($1, $2)", header = "Utils.hpp")]
 extern function print_conditions_raw(temperature : bits32, humidity : bits32)
 
-@[CFunction (binding = "print_conditions($1, $2)", header = "Utils.h")]
+@[CFunction (binding = "print_conditions($1, $2)", header = "Utils.hpp")]
 extern function print_conditions(temperature : bits32, humidity : bits32)
 
-@[CFunction (binding = "interrupts_on()", header = "env.h")]
+@[CFunction (binding = "interrupts_on()", header = "env.hpp")]
 extern function interrupts_on ()
 
-@[CFunction (binding = "interrupts_off()", header = "env.h")]
+@[CFunction (binding = "interrupts_off()", header = "env.hpp")]
 extern function interrupts_off ()
 
-@[CFunction (binding = "publish_conditions($1, $2)", header = "Utils.h")]
+@[CFunction (binding = "publish_conditions($1, $2)", header = "Utils.hpp")]
 extern function publish_conditions(temperature : bits32, humidity : bits32)  
 
-@[CFunction (binding = "reconnect()", header = "Utils.h")]
-extern function reconnect ()
-
-@[CFunction (binding ="client_loop()", header = "Utils.h")]
+@[CFunction (binding ="client_loop()", header = "Utils.hpp")]
 extern function client_loop ()
 
-@[CFunction (binding ="is_client_connected()", header = "Utils.h")]
+@[CFunction (binding ="is_client_connected()", header = "Utils.hpp")]
 extern function is_client_connected () returns bool
+
+@[CFunction (binding ="connect()", header = "Utils.hpp")]
+extern function connect () returns bool
+
+@[CFunction (binding ="LED_on()", header = "Utils.hpp")]
+extern function LED_on ()
+
+@[CFunction (binding ="LED_off()", header = "Utils.hpp")]
+extern function LED_off () ()
 
 
 // from: https://github.com/frameworklabs/react/blob/master/react.blc
@@ -135,6 +141,35 @@ activity measure () (environment_conditions : EnvCond) returns bool
 
 end
 
+activity flash_LED () ()
+    repeat
+        LED_on()
+        run delay(1000)
+        LED_off()
+    end
+end
+
+activity reconnect_if_necessary ()
+    var is_connected = is_client_connected()
+    if (not is_connected) then
+        cobegin
+            repeat
+                is_connected = connect()
+                run delay(5000)
+            until is_connected end
+        with weak
+            run flash_LED()
+        end
+    end
+    LED_off()
+    await(true)
+end
+
+activity mqtt_loop ()
+    client_loop()
+    await(true)
+end
+
 @[EntryPoint]
 activity Main ()
     var environment_conditions : EnvCond = {temperature = 0, humidity = 0}
@@ -145,12 +180,11 @@ activity Main ()
             environment_conditions.humidity = -1 // 0xFFFF
             environment_conditions.temperature = -1 // 0xFFFF
         end
-        run delay(2000) // wait some time until the next measurement
+        
         publish_conditions(environment_conditions.temperature, environment_conditions.humidity)
+        run delay(2000) // wait some time until the next measurement
 
-        if (not is_client_connected()) then
-            reconnect();
-        end
-        client_loop();
+        run mqtt_loop()
+        run reconnect_if_necessary()
     end
 end

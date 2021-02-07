@@ -1,5 +1,5 @@
-#include "Utils.h"
-#include "MQTT_Config.h"
+#include "Utils.hpp"
+#include "MQTT_Config.hpp"
 
 WiFiClient esp;
 PubSubClient client(esp);
@@ -47,6 +47,14 @@ void interrupts_off(void) { noInterrupts(); }
 
 void interrupts_on(void) { interrupts(); }
 
+void LED_on(void) {
+  digitalWrite(LED_ONBOARD, LOW);
+}
+
+void LED_off(void) {
+  digitalWrite(LED_ONBOARD, HIGH);
+}
+
 // See examples from https://github.com/knolleary/pubsubclient
 void setup_wifi_and_mqtt() {
   delay(10);
@@ -69,18 +77,11 @@ void setup_wifi_and_mqtt() {
   client.setServer(MQTT_BROKER, 1883);
 }
 
-void reconnect() {
-  while (!client.connected()) {
-    Serial.print("Reconnecting...");
-    if (!client.connect("ESP8266Client_withDHT11", mqttUser, mqttPassword)) {
-      Serial.print("failed, client_state=");
-      Serial.print(client.state());
-      Serial.println(" retrying in 5 seconds");
-      delay(5000);
-    }
-  }
-}
-
 void client_loop() { client.loop(); }
 
 blc_bool is_client_connected() { return client.connected(); }
+
+blc_bool connect() {
+  Serial.println("Connecting to MQTT");
+  return client.connect("ESP8266Client_withDHT11", mqttUser, mqttPassword);
+}

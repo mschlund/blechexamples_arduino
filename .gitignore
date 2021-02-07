@@ -1,7 +1,7 @@
 .vscode
 blech/*
-blech.h
-blechconf.h
+blech.h*
+blechconf.h*
 
 blink.h
 blink.c
@@ -28,5 +28,5 @@ cbmc*
 DHT11_MQTT.h
 DHT11_MQTT.c
 
-*_Config.h
+*_Config.h*
 
