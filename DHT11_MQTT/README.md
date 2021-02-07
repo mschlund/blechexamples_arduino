@@ -9,7 +9,7 @@ them to an MQTT-broker under the topic "sensor/dht11" (defined in MQTT_Config.h)
 
 ## Building
 
-First rename the "MQTT_Config_TEMPLATE.h" to "MQTT_Config.h" and adapt the file according to your WIFI-settings etc.
+First rename the "MQTT_Config_TEMPLATE.hpp" to "MQTT_Config.hpp" and adapt the file according to your WIFI-settings etc.
 
 Then as always
 ```
