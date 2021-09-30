@@ -1,5 +1,5 @@
 # LED_DotMatrix
-Using blech to measure temperature/humidity via a DHT11-sensor.
+Using blech to control an 8x8-array of LEDs using a MAX7219-module.
 
 As always.. do
 
@@ -10,4 +10,4 @@ $ make
 
 and then build and flash the LED_DotMatrix.ino with your favorite Arduino-IDE.
 
-See the corresponding blog-post for this mini-project:
+See the corresponding blog-post for this mini-project: (tbd)
