@@ -27,7 +27,9 @@ def get_state():
   # write states of each column as an 8 byte array (in hex)
   cols_as_bytes = [ hex(int("".join([button_to_str(buttons[row][col]) for row in range(0,8)]
                         ), 2)) for col in range(0,8)]
-  bytes_as_cstring = "{" + ", ".join(cols_as_bytes) + "}"
+  rows_as_bytes = [hex(int("".join([button_to_str(buttons[row][col]) for col in range(0,8)]
+                        ), 2)) for row in range(0,8)]
+  bytes_as_cstring = "{" + ", ".join(rows_as_bytes) + "}"
   ent_state.delete(0, tk.END)
   ent_state.insert(0, str(bytes_as_cstring))
 
