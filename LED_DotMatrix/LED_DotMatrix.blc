@@ -54,7 +54,7 @@ end
 activity print_digits ()
   var i : nat8 = 0
   repeat
-    write_msg_to_display(digits_large[i])
+    write_msg_to_display(digits_3x5[i])
     i = i +1
     i = i % NUM_DIGITS
     run delay(1000)
