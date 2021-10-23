@@ -1,5 +1,5 @@
 # LED_DotMatrix
-Using blech to control an 8x8-array of LEDs using a MAX7219-module.
+Using Blech to control an 8x8-array of LEDs using a MAX7219-module.
 
 As always.. do
 
