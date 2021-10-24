@@ -27,38 +27,15 @@ void setup() {
   // display all "digits"(=rows)
   write_data_to_reg(0x0B,0x07);
 
-  clear_display();
+  blc_01LED_DotMatrix01_clear_display();
 
   // lowest intensity
-  set_intensity(0x00);
+  blc_01LED_DotMatrix01_set_intensity(0x00);
 }
 
 void loop() {
   blc_blech_01LED_DotMatrix01_tick();
   delay(MILLIS_PER_TICK);
-}
-
-void write_msg_to_display(byte msg[8]) {
-  for (byte row=1; row<9; row++) {
-    write_row(row, msg[row-1]);
-  }
-}
-
-void write_row(byte row, byte state) {
-  if(0 < row && row < 9) {
-    write_data_to_reg(row, state);
-  }
-}
-
-void clear_display() {
-  // register for first row is "1"
-  for(int row=1; row<9; row++) {
-    write_data_to_reg(row, 0x00);
-  }
-}
-
-void set_intensity(byte intensity) {
-  write_data_to_reg(0x0A, intensity);
 }
 
 void write_data_to_reg(byte reg, byte data) {

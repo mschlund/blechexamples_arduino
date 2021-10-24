@@ -31,11 +31,35 @@ param digits_3x5: [NUM_DIGITS][LEN] nat8 = {
   {0xe0, 0xa0, 0xe0, 0x20, 0xe0, 0x0, 0x0, 0x0} // 9 (3x5)
 }
 
-@[CFunction (binding = "write_msg_to_display($1)", header = "env.h")]
-extern function write_msg_to_display(msg: [8]nat8)
+@[CFunction (binding = "write_data_to_reg($1, $2)", header = "env.h")]
+extern function write_data_to_reg (reg : nat8, state : nat8)
 
-@[CFunction (binding = "clear_display()", header = "env.h")]
-extern function clear_display ()
+function write_row (row : nat8, state : nat8)
+  if 0 < row and row < 9 then
+    write_data_to_reg(row, state);
+  end
+end
+
+function write_msg_to_display (msg : [LEN]nat8)
+  var row : nat8 = 1
+  repeat
+    write_row(row, msg[row-1]);
+    row = row + 1
+  until row == 9 end
+end
+
+
+function clear_display ()
+  var row : nat8 = 1
+  repeat
+    write_data_to_reg(row, 0x00);
+    row = row + 1
+  until row == 9 end
+end
+
+function set_intensity(intensity : nat8)
+  write_data_to_reg(0x0A, intensity)
+end
 
 // from: https://github.com/frameworklabs/react/blob/master/react.blc
 /// Delays the trail for the given period.
@@ -65,7 +89,5 @@ end
 
 @[EntryPoint]
 activity Main ()
-  repeat
-    run print_digits()
-  end
+  run print_digits()
 end

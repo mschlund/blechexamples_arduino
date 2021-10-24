@@ -10,9 +10,6 @@
 #define CS_PIN 11
 #define DATA_PIN 10
 
-
-void write_msg_to_display(unsigned char msg[8]);
-void clear_display();
-
+void write_data_to_reg(unsigned char reg, unsigned char data);
 
 #endif
