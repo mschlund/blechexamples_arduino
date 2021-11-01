@@ -2,6 +2,7 @@
 
 extern "C" {
   #include "env.h"
+  #include "MAX_72XX.h"
   #include "LED_DotMatrix.h"
 }
 
@@ -27,10 +28,10 @@ void setup() {
   // display all "digits"(=rows)
   write_data_to_reg(0x0B,0x07);
 
-  blc_01LED_DotMatrix01_clear_display();
+  blc_01MAX_72XX01_clear_display();
 
   // lowest intensity
-  blc_01LED_DotMatrix01_set_intensity(0x00);
+  blc_01MAX_72XX01_set_intensity(0x00);
 }
 
 void loop() {

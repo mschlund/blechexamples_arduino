@@ -1,5 +1,6 @@
 .vscode
 blech/*
+*.blh
 blech.h*
 blechconf.h*
 
@@ -32,4 +33,8 @@ DHT11_MQTT.c
 
 LED_DotMatrix.h
 LED_DotMatrix.c
+utils.h
+utils.c
+MAX_72XX.h
+MAX_72XX.c
 
