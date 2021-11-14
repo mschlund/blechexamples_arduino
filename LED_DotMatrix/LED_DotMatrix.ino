@@ -27,11 +27,6 @@ void setup() {
 
   // display all "digits"(=rows)
   write_data_to_reg(0x0B,0x07);
-
-  blc_01MAX_72XX01_clear_display();
-
-  // lowest intensity
-  blc_01MAX_72XX01_set_intensity(0x00);
 }
 
 void loop() {
@@ -49,4 +44,8 @@ void write_data_to_reg(byte reg, byte data) {
   shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, reg);
   shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, data);
   digitalWrite(CS_PIN, HIGH);
+}
+
+void DEBUG(int x) {
+  Serial.println(x);
 }

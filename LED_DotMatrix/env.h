@@ -10,5 +10,6 @@
 #define DATA_PIN 10
 
 void write_data_to_reg(unsigned char reg, unsigned char data);
+void DEBUG(int x);
 
 #endif

@@ -3,5 +3,5 @@ import display "MAX_72XX"
 
 @[EntryPoint]
 activity Main ()
-  run display.print_digits()
+  run display.cycle_through_digits()
 end

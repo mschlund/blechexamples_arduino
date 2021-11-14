@@ -1,15 +1,23 @@
 import ut "utils"
 
-module exposes init, write_msg_to_display, clear_display, print_digits, LEN
+module exposes init, append_msg, clear_display, cycle_through_digits, LEN
 
 @[CFunction (binding = "write_data_to_reg($1, $2)", header = "env.h")]
 extern function write_data_to_reg (reg : bits8, state : bits8)
+
+@[CFunction (binding = "DEBUG($1)", header = "env.h")]
+extern function DEBUG (x : int32)
 
 const LEN: nat8 = 8
 const NUM_DIGITS : bits8 = 10
 
 struct Display
-  var current_state : [8]bits8
+  var current_state : [8]bits8 // state of each row (0: LED off, 1: LED on)
+end
+
+struct Offset
+  var x : bits8
+  var y : bits8
 end
 
 // digits drawn with the matrix2bytes-tool
@@ -40,44 +48,94 @@ param digits_3x5: [NUM_DIGITS][LEN] bits8 = {
 }
 
 function init () returns Display
-  return {current_state = {0,0,0,0,0,0,0,0}}
+  return {current_state = {0,0,0,0, 0,0,0,0}}
 end
 
-function write_row (row : bits8, state : bits8)
-  if 0 < row and row < 9 then
-    write_data_to_reg(row, state)
+function write_row (d : Display, row : bits8, state : bits8) returns Display
+  var display = d
+  if 0 <= row and row < 8 then
+    display.current_state[row] = state
   end
+  return display
 end
 
-function write_msg_to_display (msg : [LEN]bits8)
-  var row : bits8 = 1
-  repeat
-    write_row(row, msg[row-1])
-    row = row + 1
-  until row == 9 end
+function append_msg (d : Display, msg : [LEN]bits8, offset : Offset) returns Display
+  var display = d
+  var row : bits8 = 0
+
+  if    (0 <= offset.x and offset.x < 8) 
+    and (0 <= offset.y and offset.y < 8) then
+    var msg_to_write = display.current_state
+    row = offset.y
+    repeat
+      msg_to_write[row] = msg_to_write[row] | (msg[row] >> offset.x)
+      row = row + 1
+    until row == 8 end
+
+    row=0
+    repeat
+      display = write_row(display, row, msg_to_write[row])
+      row = row + 1
+    until row == 8 end
+  end
+  return display
 end
 
-// TODO: argument!
-function clear_display ()
-  var row : bits8 = 1
+function clear_display (d : Display) returns Display
+  var cleared = d
+  var row : bits8 = 0
   repeat
-    write_data_to_reg(row, 0x00)
+    cleared.current_state[row] = 0x00
     row = row + 1
-  until row == 9 end
+  until row == 8 end
+  return cleared
+end
+
+function draw_display(d : Display)
+  var row : bits8 = 0
+  repeat
+    write_data_to_reg(row+1, d.current_state[row])
+    row = row + 1
+  until row == 8 end
 end
 
 function set_intensity(intensity : bits8)
   write_data_to_reg(0x0A, intensity)
 end
 
-activity print_digits ()
-  var i : bits8 = 0
+function append_digit(d:Display, digit : bits8, offset : Offset) returns Display
+  var display = d
+  if (0 <= digit and digit <= 9) then
+    display = append_msg(d, digits_3x5[digit], offset)
+  end
+  return display
+end
+
+function write_number (d : Display, num : bits8) returns Display
+  var display = d
+  if num < 100 then
+    display = append_digit(d, num/10, {x=0, y=0} )
+    DEBUG(num/10 as int32)
+    display = append_digit(display, num%10, {x=4, y=0} )
+    DEBUG((num %10) as int32 )
+  end
+  return display
+end
+
+activity cycle_through_digits ()
+  var i : bits8 = 10
+  var d : Display = init()
+  set_intensity(0)
+  draw_display(d)
   repeat
-    write_msg_to_display(digits_3x5[i])
+    d = write_number(d, i)
+    draw_display(d)
     i = i + 1
-    i = i % NUM_DIGITS
+    i = i % 100
     run ut.delay(1000)
-    clear_display()
+    d = clear_display(d)
+    draw_display(d)
     run ut.delay(1000)
   end
 end
+
