@@ -1,6 +1,4 @@
-import ut "utils"
-
-module exposes init, append_msg, clear_display, cycle_through_digits, LEN
+module exposes init, clear_display, write_2digit_number, Offset, draw_display, set_intensity
 
 @[CFunction (binding = "write_data_to_reg($1, $2)", header = "env.h")]
 extern function write_data_to_reg (reg : bits8, state : bits8)
@@ -63,9 +61,12 @@ function append_msg (msg : [LEN]bits8, offset : Offset) (display : Display)
   if    (0 <= offset.x and offset.x < 8) 
     and (0 <= offset.y and offset.y < 8) then
     var msg_to_write = display.current_state
-    row = offset.y
+    row = 0
     repeat
-      msg_to_write[row] = msg_to_write[row] | (msg[row] >> offset.x)
+      if row >= offset.y  then
+        let shifted_row = row-offset.y
+        msg_to_write[row] = msg_to_write[row] | (msg[shifted_row] >> offset.x)
+      end
       row = row + 1
     until row == 8 end
 
@@ -103,29 +104,21 @@ function append_digit(digit : bits8, offset : Offset) (display:Display)
   end
 end
 
-function write_number (num : bits8)(display : Display)
+function write_2digit_number (num : bits8, offset : Offset)(display : Display)
   if num < 100 then
-    append_digit(num/10, {x=0, y=0} )(display)
+    var offset_2 = offset
+    append_digit(num/10, offset_2)(display)
     DEBUG(num/10 as int32)
-    append_digit(num%10, {x=4, y=0} )(display)
+    offset_2.x = offset_2.x + 4
+    append_digit(num%10, offset_2)(display)
     DEBUG((num %10) as int32 )
   end
 end
 
-activity cycle_through_digits ()
-  var i : bits8 = 0
-  var d : Display = init()
-  set_intensity(0)
-  draw_display(d)
-  repeat
-    write_number(i)(d)
-    draw_display(d)
-    i = i + 1
-    i = i % 100
-    run ut.delay(1000)
-    clear_display()(d)
-    draw_display(d)
-    run ut.delay(1000)
-  end
+
+activity scroll_number (num : bits32)
+
+  await true
+  
 end
 
