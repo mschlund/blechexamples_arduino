@@ -46,6 +46,6 @@ void write_data_to_reg(byte reg, byte data) {
   digitalWrite(CS_PIN, HIGH);
 }
 
-void DEBUG(int x) {
-  Serial.println(x);
+void DEBUG(int x, int code) {
+  Serial.println("code " + String(code) + ": " + String(x));
 }

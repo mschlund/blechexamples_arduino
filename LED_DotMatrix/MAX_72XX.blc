@@ -1,10 +1,14 @@
-module exposes init, clear_display, write_2digit_number, Offset, draw_display, set_intensity
+import ut "utils"
+import queue "queue"
+
+module exposes init, clear_display, write_2digit_number, Offset, draw_display, set_intensity, scroll_number_right
+
 
 @[CFunction (binding = "write_data_to_reg($1, $2)", header = "env.h")]
 extern function write_data_to_reg (reg : bits8, state : bits8)
 
-@[CFunction (binding = "DEBUG($1)", header = "env.h")]
-extern function DEBUG (x : int32)
+@[CFunction (binding = "DEBUG($1, $2)", header = "env.h")]
+extern function DEBUG (x : bits32, code : int32)
 
 const LEN: nat8 = 8
 const NUM_DIGITS : bits8 = 10
@@ -14,12 +18,12 @@ struct Display
 end
 
 struct Offset
-  var x : bits8
-  var y : bits8
+  var x : int8
+  var y : int8
 end
 
 // digits drawn with the matrix2bytes-tool
-param digits_large: [NUM_DIGITS][LEN] bits8 = {
+param digits_large: [NUM_DIGITS][LEN]bits8 = {
   {0x18, 0x24, 0x42, 0x42, 0x42, 0x42, 0x24, 0x18}, // 0
   {0x18, 0x28, 0x48, 0x8, 0x8, 0x8, 0x8, 0x3e},     // 1
   {0x1c, 0x24, 0x44, 0x8, 0x10, 0x20, 0x7c, 0x0},   // 2
@@ -49,33 +53,34 @@ function init () returns Display
   return {current_state = {0,0,0,0, 0,0,0,0}}
 end
 
-function write_row (row : bits8, state : bits8) (display : Display)
+function write_row (row : int8, state : bits8) (display : Display)
   if 0 <= row and row < 8 then
     display.current_state[row] = state
   end
 end
 
 function append_msg (msg : [LEN]bits8, offset : Offset) (display : Display)
-  var row : bits8 = 0
+  var row : int8 = 0
 
-  if    (0 <= offset.x and offset.x < 8) 
-    and (0 <= offset.y and offset.y < 8) then
-    var msg_to_write = display.current_state
-    row = 0
-    repeat
-      if row >= offset.y  then
-        let shifted_row = row-offset.y
+  var msg_to_write = display.current_state
+  row = 0
+  repeat
+    if row >= offset.y  then
+      let shifted_row = row-offset.y
+      if offset.x > 0 then
         msg_to_write[row] = msg_to_write[row] | (msg[shifted_row] >> offset.x)
+      else
+        msg_to_write[row] = msg_to_write[row] | (msg[shifted_row] << (-offset.x))
       end
-      row = row + 1
-    until row == 8 end
+    end
+    row = row + 1
+  until row == 8 end
 
-    row=0
-    repeat
-      write_row(row, msg_to_write[row])(display)
-      row = row + 1
-    until row == 8 end
-  end
+  row=0
+  repeat
+    write_row(row, msg_to_write[row])(display)
+    row = row + 1
+  until row == 8 end
 end
 
 function clear_display () (display : Display)
@@ -86,7 +91,7 @@ function clear_display () (display : Display)
   until row == 8 end
 end
 
-function draw_display(d : Display)
+function draw_display (d : Display)
   var row : bits8 = 0
   repeat
     write_data_to_reg(row+1, d.current_state[row])
@@ -94,31 +99,81 @@ function draw_display(d : Display)
   until row == 8 end
 end
 
-function set_intensity(intensity : bits8)
+function set_intensity (intensity : bits8)
   write_data_to_reg(0x0A, intensity)
 end
 
-function append_digit(digit : bits8, offset : Offset) (display:Display)
+function append_digit (digit : bits8, offset : Offset) (display : Display)
   if (0 <= digit and digit <= 9) then
     append_msg(digits_3x5[digit], offset)(display)
   end
 end
 
-function write_2digit_number (num : bits8, offset : Offset)(display : Display)
+function write_2digit_number (num : bits8, offset : Offset) (display : Display)
   if num < 100 then
     var offset_2 = offset
     append_digit(num/10, offset_2)(display)
-    DEBUG(num/10 as int32)
+    //DEBUG(num/10 as int32)
     offset_2.x = offset_2.x + 4
     append_digit(num%10, offset_2)(display)
-    DEBUG((num %10) as int32 )
+    //DEBUG((num %10) as int32 )
   end
 end
 
-
-activity scroll_number (num : bits32)
-
-  await true
-  
+activity scroll_digit (num: bits8) (d: Display)
+  var xshift: int8 = -2
+  repeat
+    DEBUG(xshift as bits32, 4)
+    DEBUG(num, 5)
+    append_digit(num, {x=xshift, y=1}) (d)
+    draw_display(d)
+    run ut.delay(200)
+    clear_display() (d)
+    draw_display(d)
+    xshift = xshift + 1
+  until xshift > 7 end
 end
 
+
+/**
+ display a multidigit-number by scrolling to the right
+*/
+activity scroll_number_right (num : bits32) (d : Display)
+  if num < 100 then
+      write_2digit_number(num as! bits8, {x=0, y=1}) (d)
+  else
+    var q: queue.Queue = queue.init()
+    var num_left = num
+    repeat
+      repeat
+        var digit = (num_left % 10) // rightmost digit
+        num_left = num_left / 10 // shave off one digit 
+        DEBUG(digit as bits32, 0)
+
+        var sd: queue.Shift_Digit
+        sd = {xshift=0, digit=(digit as! bits8)}
+        DEBUG(sd.xshift as bits32, 1)
+        DEBUG(sd.digit, 2)
+
+        run queue.enqueue(sd)(q)
+      until queue.is_full(q) or num_left <= 0 end
+
+      DEBUG(num_left, 3)
+      repeat
+        run ut.delay(200)
+        var next_digit: queue.Shift_Digit
+  
+        if not queue.is_empty(q) then
+          run next_digit = queue.dequeue() (q)          
+        end
+
+        // display and shift digit
+        var xoffs: int8 = next_digit.xshift
+        run scroll_digit(next_digit.digit) (d)
+
+      until queue.is_empty(q) end
+
+    until num_left <= 0 end
+  end
+  await true
+end

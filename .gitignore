@@ -37,4 +37,9 @@ utils.h
 utils.c
 MAX_72XX.h
 MAX_72XX.c
+queue.h
+queue.c
 
+
+.fake
+.ionide

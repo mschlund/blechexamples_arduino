@@ -21,5 +21,11 @@ end
 
 @[EntryPoint]
 activity Main ()
-  run cycle_through_digits()
+  var d : display.Display = display.init()
+  display.set_intensity(0)
+  display.draw_display(d)
+  //run cycle_through_digits()
+  repeat
+    run display.scroll_number_right(1234567) (d)
+  end
 end

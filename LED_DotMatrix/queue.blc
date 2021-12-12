@@ -1,0 +1,68 @@
+import ut "utils"
+
+// a simple (capacitated, "blocking") queue for nat8-entries
+// very much like the RingBuffer-example
+// https://www.blech-lang.org/blog/2020/11/23/a-module-system-for-blech/
+// TODO: implement more efficiently with two indices: pointing to head and tail
+
+module exposes Shift_Digit, init, is_empty, is_full, enqueue, val_at, dequeue
+
+const Capacity: nat8 = 3
+
+struct Shift_Digit
+  var xshift: int8
+  var digit: bits8
+end
+
+struct Queue
+  var content: [Capacity]Shift_Digit
+  var count: nat8
+end
+
+function init() returns Queue
+  return {count=0}
+end
+
+function is_empty(q: Queue) returns bool
+  return q.count == 0
+end
+
+function is_full(q: Queue) returns bool
+  return q.count == Capacity
+end
+
+activity enqueue(val: Shift_Digit) (q: Queue)
+  await not is_full(q)
+  q.content[q.count] = val
+  q.count = q.count + 1
+end
+
+function shl_vals() (q: Queue)
+  var i : nat8 = 0
+  repeat
+    if i+1 <= q.count then
+      // advance all elements in the queue by 1
+      q.content[i] = q.content[i+1]
+    end
+    i = i + 1
+  until i > q.count end
+end
+
+function val_at(pos: nat8, q: Queue) returns Shift_Digit
+  if pos >= 0 and pos < q.count then
+    return q.content[pos]
+  else
+    return {xshift = 0, digit = 0}
+  end
+end
+
+activity dequeue()(q: Queue) returns Shift_Digit
+  await not is_empty(q)
+  let val = q.content[0]
+  q.content[0] = {xshift = 0, digit = 0} //erase first entry
+  q.count = q.count - 1
+  shl_vals()(q)
+
+  return val
+end
+
