@@ -8,10 +8,11 @@ module exposes init, clear_display, write_2digit_number, Offset, draw_display, s
 extern function write_data_to_reg (reg : bits8, state : bits8)
 
 @[CFunction (binding = "DEBUG($1, $2)", header = "env.h")]
-extern function DEBUG (x : bits32, code : int32)
+extern function DEBUG (x : int32, code : int32)
 
 const LEN: nat8 = 8
 const NUM_DIGITS : bits8 = 10
+const num_displayable_digits : nat8 = 3
 
 struct Display
   var current_state : [8]bits8 // state of each row (0: LED off, 1: LED on)
@@ -120,11 +121,109 @@ function write_2digit_number (num : bits8, offset : Offset) (display : Display)
   end
 end
 
+function advance_shifts_cyclic () (xshifts : [num_displayable_digits]int8)
+  var i : nat8 = 0
+  repeat
+    xshifts[i] = (xshifts[i] + 1)
+    if xshifts[i] > 8 then
+      xshifts[i] = -3
+    end
+    i = i + 1
+  until i >= num_displayable_digits end
+end
+
+function advance_shifts_inf () (xshifts : [num_displayable_digits]int8)
+  var i : nat8 = 0
+  repeat
+    xshifts[i] = (xshifts[i] + 1)
+    i = i + 1
+  until i >= num_displayable_digits end
+end
+
+function display_digits_all (head : nat8,
+                             digits : [num_displayable_digits]bits8,
+                             xshifts : [num_displayable_digits]int8)
+                             (d : Display, capacity : nat8)
+  var i : nat8 = 0
+  repeat
+    if(xshifts[i] >= -2) then
+      append_digit (digits[i], {x=xshifts[i], y=1}) (d)
+    end
+    if xshifts[i] >= 8 then
+      capacity = capacity + 1
+    end
+    i = i + 1
+  until i >= num_displayable_digits end
+end
+
+function all_greater(xshifts : [num_displayable_digits]int8, bound : int8) returns bool
+  var i : nat8 = 0
+  var res : bool = true
+  repeat
+    if xshifts[i] <= bound then
+      res = false
+    end
+    i = i + 1
+  until i >= num_displayable_digits end
+  return res
+end
+
+activity blink_digits(head : nat8,
+                      digits : [num_displayable_digits]bits8,
+                      xshifts : [num_displayable_digits]int8)
+                      (d : Display, capacity : nat8)
+
+  display_digits_all (head, digits, xshifts) (d, capacity)
+  draw_display(d)
+  run ut.delay(500)
+  clear_display() (d)
+  run ut.delay(100)
+  draw_display(d)
+
+end
+
+activity scroll_number_right (num : bits32) (d : Display)
+  if num < 100 then
+    write_2digit_number(num as! bits8, {x=0, y=1}) (d)
+  else
+    var xshifts : [num_displayable_digits]int8 = {-2, -6, -10}
+    var digits : [num_displayable_digits]bits8
+    var head : nat8 = 0
+    var num_left = num
+    var capacity : nat8 = 3
+    repeat
+      if capacity > 0 then
+        var digit = num_left%10
+        DEBUG(digit as! int32, 0)
+        digits[head] = (digit as! bits8)
+        capacity = capacity - 1
+        num_left = num_left/10
+        DEBUG(num_left as! int32, 1)
+        head = (head + 1) % num_displayable_digits
+      end
+
+      advance_shifts_cyclic() (xshifts)
+      run blink_digits (head, digits, xshifts) (d, capacity)
+
+      if num_left <= 0 then
+        // display the rest of the digits until all xshifts are > 8 (do not use advance_shifts!)
+        repeat
+          advance_shifts_inf() (xshifts)
+          run blink_digits (head, digits, xshifts) (d, capacity)      
+        until all_greater(xshifts, 8) end
+      end
+
+    until num_left <= 0 end
+  end
+  await true
+end
+
+
 activity scroll_digit (num: bits8) (d: Display)
   var xshift: int8 = -2
   repeat
-    DEBUG(xshift as bits32, 4)
-    DEBUG(num, 5)
+    DEBUG(xshift as int32, 4)
+    DEBUG(num as int32, 5)
     append_digit(num, {x=xshift, y=1}) (d)
     draw_display(d)
     run ut.delay(200)
@@ -134,11 +233,10 @@ activity scroll_digit (num: bits8) (d: Display)
   until xshift > 7 end
 end
 
-
 /**
- display a multidigit-number by scrolling to the right
+ display a multidigit-number by scrolling to the right a single digit at a time
 */
-activity scroll_number_right (num : bits32) (d : Display)
+activity scroll_number_right_single_digit (num : bits32) (d : Display)
   if num < 100 then
       write_2digit_number(num as! bits8, {x=0, y=1}) (d)
   else
@@ -148,17 +246,17 @@ activity scroll_number_right (num : bits32) (d : Display)
       repeat
         var digit = (num_left % 10) // rightmost digit
         num_left = num_left / 10 // shave off one digit 
-        DEBUG(digit as bits32, 0)
+        DEBUG(digit as! int32, 0)
 
         var sd: queue.Shift_Digit
         sd = {xshift=0, digit=(digit as! bits8)}
-        DEBUG(sd.xshift as bits32, 1)
-        DEBUG(sd.digit, 2)
+        DEBUG(sd.xshift as int32, 1)
+        DEBUG(sd.digit as int32, 2)
 
         run queue.enqueue(sd)(q)
       until queue.is_full(q) or num_left <= 0 end
 
-      DEBUG(num_left, 3)
+      DEBUG(num_left as! int32, 3)
       repeat
         run ut.delay(200)
         var next_digit: queue.Shift_Digit
