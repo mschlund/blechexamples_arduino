@@ -1,7 +1,10 @@
-module exposes delay
+module exposes delay, DEBUG
 
 @[CConst (binding = "MILLIS_PER_TICK", header = "env.h")]
 extern const MILLIS_PER_TICK: nat32
+
+@[CFunction (binding = "DEBUG($1, $2)", header = "env.h")]
+extern function DEBUG (x : bits32, code : int32)
 
 
 // from: https://github.com/frameworklabs/react/blob/master/react.blc

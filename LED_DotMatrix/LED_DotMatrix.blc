@@ -1,20 +1,13 @@
 import display "MAX_72XX"
 import ut "utils"
 
-activity cycle_through_digits ()
+activity cycle_through_numbers ()
   var i : bits8 = 0
-  var d : display.Display = display.init()
+  var d = display.init()
   display.set_intensity(0)
-  display.draw_display(d)
   repeat
-    display.write_2digit_number(i, {x=0, y=1} )(d)
-    display.draw_display(d)
-    i = i + 1
-    i = i % 100
-    run ut.delay(500)
-    display.clear_display()(d)
-    display.draw_display(d)
-    run ut.delay(500)
+    run display.display_number(i) (d)
+    i = (i + 1) % 100
   end
 end
 
@@ -23,9 +16,8 @@ end
 activity Main ()
   var d : display.Display = display.init()
   display.set_intensity(0)
-  display.draw_display(d)
-  //run cycle_through_digits()
+  //run cycle_through_numbers
   repeat
-    run display.scroll_number_right(1234567) (d)
+    run display.display_number(1234567) (d)
   end
 end
