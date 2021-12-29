@@ -1,0 +1,20 @@
+import ut "utils"
+
+module exposes click_detection
+
+activity click_detection () returns nat8
+  @[CInput (binding ="button_pressed", header = "input.h")]
+  extern let button_pressed: bool
+
+  var nr_clicks : nat8 = 0
+  cobegin weak
+    repeat
+      await button_pressed
+      await not button_pressed
+      nr_clicks = nr_clicks + 1
+    end
+  with
+    run ut.delay(2000) // clicks have to happen within 2000ms
+  end
+  return nr_clicks
+end

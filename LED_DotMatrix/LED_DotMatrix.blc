@@ -1,5 +1,6 @@
 import display "MAX_72XX"
 import ut "utils"
+import input "button"
 
 activity cycle_through_numbers ()
   var i : bits8 = 0
@@ -7,6 +8,7 @@ activity cycle_through_numbers ()
   display.set_intensity(0)
   repeat
     run display.display_number(i) (d)
+    run ut.delay(500)
     i = (i + 1) % 100
   end
 end
@@ -16,8 +18,30 @@ end
 activity Main ()
   var d : display.Display = display.init()
   display.set_intensity(0)
-  //run cycle_through_numbers
+
   repeat
-    run display.display_number(1234567) (d)
+    var reset_system : bool = false
+    var nr_clicks : nat8 = 0
+    repeat
+      cobegin weak
+        repeat
+          await nr_clicks > 0
+          if nr_clicks == 2 then
+            repeat
+              run display.display_number(1234567890) (d)
+            end
+          elseif nr_clicks == 1 then
+            run cycle_through_numbers()
+          end
+        end
+      with
+        repeat
+          run nr_clicks = input.click_detection()
+          reset_system = (nr_clicks > 2)
+        until nr_clicks > 0 end
+      end
+    until reset_system end
+    display.erase_display()(d)
   end
+
 end

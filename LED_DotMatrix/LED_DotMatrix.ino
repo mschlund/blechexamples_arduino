@@ -4,11 +4,14 @@ extern "C" {
   #include "env.h"
   #include "MAX_72XX.h"
   #include "LED_DotMatrix.h"
+  #include "input.h"
+  #include "button.h"
 }
 
 void setup() {
   Serial.begin(9600);
  
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(CLOCK_PIN, OUTPUT);
   pinMode(CS_PIN, OUTPUT);
   pinMode(DATA_PIN, OUTPUT);
@@ -30,6 +33,8 @@ void setup() {
 }
 
 void loop() {
+  button_pressed = (digitalRead(BUTTON_PIN) == LOW);
+
   blc_blech_01LED_DotMatrix01_tick();
   delay(MILLIS_PER_TICK);
 }
