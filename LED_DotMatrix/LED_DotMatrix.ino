@@ -42,7 +42,6 @@ void loop() {
 void write_data_to_reg(byte reg, byte data) {
   // make sure clock is 0
   digitalWrite(CLOCK_PIN, LOW);
-
   // wake-up peripheral,
   // see https://learn.sparkfun.com/tutorials/serial-peripheral-interface-spi, CS is "active low"
   digitalWrite(CS_PIN, LOW);

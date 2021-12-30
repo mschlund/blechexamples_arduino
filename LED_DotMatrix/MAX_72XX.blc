@@ -1,12 +1,9 @@
 import ut "utils"
-import queue "queue"
 
 module exposes init, set_intensity, display_number, erase_display
 
-
 @[CFunction (binding = "write_data_to_reg($1, $2)", header = "env.h")]
 extern function write_data_to_reg (reg : bits8, state : bits8)
-
 
 const LEN: nat8 = 8
 const NUM_DIGITS : bits8 = 10
@@ -68,7 +65,7 @@ function write_row (row : int8, state : bits8) (display : Display)
   end
 end
 
-function append_msg (msg : [LEN]bits8, offset : Offset) (display : Display)
+function add_msg (msg : [LEN]bits8, offset : Offset) (display : Display)
   var row : int8 = 0
   var msg_to_write = display.current_state
   row = 0
@@ -108,11 +105,11 @@ function set_intensity (intensity : bits8)
   write_data_to_reg(0x0A, intensity)
 end
 
-function append_digit (digit : bits8,
+function add_digit (digit : bits8,
                        offset : Offset)
                       (display : Display)
   if (0 <= digit and digit <= 9) then
-    append_msg(digits_3x5[digit], offset)(display)
+    add_msg(digits_3x5[digit], offset)(display)
   end
 end
 
@@ -121,9 +118,9 @@ function write_2digit_number (num : bits8,
                             (display : Display)
   if num < 100 then
     var offset_2 = offset
-    append_digit(num/10, offset_2)(display)
+    add_digit(num/10, offset_2)(display)
     offset_2.x = offset_2.x + 4
-    append_digit(num%10, offset_2)(display)
+    add_digit(num%10, offset_2)(display)
   end
 end
 
@@ -155,7 +152,7 @@ function display_digits_all (head : nat8,
   var i : nat8 = 0
   repeat
     if(xshifts[i] >= -2) then
-      append_digit (digits[i], {x=xshifts[i], y=1}) (d)
+      add_digit (digits[i], {x=xshifts[i], y=1}) (d)
     end
     if xshifts[i] >= 8 then
       capacity = capacity + 1
@@ -222,7 +219,6 @@ activity display_number (num : bits32)
           run blink_digits (head, digits, xshifts) (d, capacity)      
         until all_greater(xshifts, 8) end
       end
-
     until num_left <= 0 end
   end
   await true
