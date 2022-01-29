@@ -1,0 +1,19 @@
+module exposes read_direction
+
+@[CFunction (binding = "read_X()", header = "env.h")]
+extern function read_X () returns bits32
+
+@[CFunction (binding = "read_Y()", header = "env.h")]
+extern function read_Y () returns bits32
+
+function read_direction() returns bits32
+  let x = read_X()
+  let y = read_Y()
+  var dir : bits8 = -1
+/*  if x > 700 then
+    dir = 0
+  end
+  return dir */
+  return x
+end
+

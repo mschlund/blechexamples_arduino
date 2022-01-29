@@ -1,0 +1,238 @@
+import ut "utils"
+
+module exposes init, set_intensity, display_number, erase_display, display_direction
+
+@[CFunction (binding = "write_data_to_reg($1, $2)", header = "env.h")]
+extern function write_data_to_reg (reg : bits8, state : bits8)
+
+const LEN: nat8 = 8
+const NUM_DIGITS : bits8 = 10
+const num_displayable_digits : nat8 = 3
+
+struct Display
+  var current_state : [8]bits8 // state of each row (0: LED off, 1: LED on)
+end
+
+struct Offset
+  var x : int8
+  var y : int8
+end
+
+// digits drawn with the matrix2bytes-tool
+param digits_large: [NUM_DIGITS][LEN]bits8 = {
+  {0x18, 0x24, 0x42, 0x42, 0x42, 0x42, 0x24, 0x18}, // 0
+  {0x18, 0x28, 0x48, 0x8, 0x8, 0x8, 0x8, 0x3e},     // 1
+  {0x1c, 0x24, 0x44, 0x8, 0x10, 0x20, 0x7c, 0x0},   // 2
+  {0x38, 0x44, 0x4, 0x3c, 0x38, 0x4, 0x44, 0x38},   // 3
+  {0x48, 0x48, 0x48, 0x48, 0x78, 0x8, 0x8, 0x8},    // 4
+  {0x3e, 0x20, 0x20, 0x3e, 0x3e, 0x2, 0x2, 0x3e},   // 5
+  {0x4, 0x8, 0x10, 0x20, 0x38, 0x44, 0x42, 0x3c},   // 6
+  {0x7f, 0x2, 0x4, 0x3e, 0x10, 0x20, 0x40, 0x80},   // 7
+  {0x3c, 0x42, 0x42, 0x3c, 0x3c, 0x42, 0x42, 0x3c}, // 8
+  {0x38, 0x44, 0x44, 0x38, 0x4, 0x4, 0x4, 0x38}     // 9
+}
+
+param digits_3x5: [NUM_DIGITS][LEN] bits8 = {
+  {0xe0, 0xa0, 0xa0, 0xa0, 0xe0, 0x0, 0x0, 0x0}, // 0 (3x5)
+  {0x40, 0x40, 0x40, 0x40, 0x40, 0x0, 0x0, 0x0}, // 1 (3x5)
+  {0xe0, 0x20, 0xe0, 0x80, 0xe0, 0x0, 0x0, 0x0}, // 2 (3x5)
+  {0xe0, 0x20, 0xe0, 0x20, 0xe0, 0x0, 0x0, 0x0}, // 3 (3x5)
+  {0xa0, 0xa0, 0xe0, 0x20, 0x20, 0x0, 0x0, 0x0}, // 4 (3x5)
+  {0xe0, 0x80, 0xe0, 0x20, 0xe0, 0x0, 0x0, 0x0}, // 5 (3x5)
+  {0xe0, 0x80, 0xe0, 0xa0, 0xe0, 0x0, 0x0, 0x0}, // 6 (3x5)
+  {0xe0, 0x20, 0x20, 0x20, 0x20, 0x0, 0x0, 0x0}, // 7 (3x5)
+  {0xe0, 0xa0, 0xe0, 0xa0, 0xe0, 0x0, 0x0, 0x0}, // 8 (3x5)
+  {0xe0, 0xa0, 0xe0, 0x20, 0xe0, 0x0, 0x0, 0x0} // 9 (3x5)
+}
+
+param directions : [1][LEN] bits8 = {
+  {0x0, 0x10, 0x10, 0x10, 0x7c, 0x38, 0x10, 0x0}, // v
+}
+
+function draw_display (d : Display)
+  var row : bits8 = 0
+  repeat
+    write_data_to_reg(row+1, d.current_state[row])
+    row = row + 1
+  until row == 8 end
+end
+
+function init () returns Display
+  var d : Display = {current_state = {0,0,0,0, 0,0,0,0}}
+  draw_display(d)
+  return d
+end
+
+function write_row (row : int8, state : bits8) (display : Display)
+  if 0 <= row and row < 8 then
+    display.current_state[row] = state
+  end
+end
+
+function add_msg (msg : [LEN]bits8, offset : Offset) (display : Display)
+  var row : int8 = 0
+  var msg_to_write = display.current_state
+  row = 0
+  repeat
+    if row >= offset.y  then
+      let shifted_row = row-offset.y
+      if offset.x > 0 then
+        msg_to_write[row] = msg_to_write[row] | (msg[shifted_row] >> offset.x)
+      else
+        msg_to_write[row] = msg_to_write[row] | (msg[shifted_row] << (-offset.x))
+      end
+    end
+    row = row + 1
+  until row == 8 end
+
+  row=0
+  repeat
+    write_row(row, msg_to_write[row])(display)
+    row = row + 1
+  until row == 8 end
+end
+
+function clear_display () (display : Display)
+  var row : bits8 = 0
+  repeat
+    display.current_state[row] = 0x00
+    row = row + 1
+  until row == 8 end
+end
+
+function erase_display () (d:Display)
+  clear_display()(d)
+  draw_display(d)
+end
+
+function set_intensity (intensity : bits8)
+  write_data_to_reg(0x0A, intensity)
+end
+
+function add_digit (digit : bits8,
+                       offset : Offset)
+                      (display : Display)
+  if (0 <= digit and digit <= 9) then
+    add_msg(digits_3x5[digit], offset)(display)
+  end
+end
+
+function write_2digit_number (num : bits8,
+                              offset : Offset)
+                            (display : Display)
+  if num < 100 then
+    var offset_2 = offset
+    add_digit(num/10, offset_2)(display)
+    offset_2.x = offset_2.x + 4
+    add_digit(num%10, offset_2)(display)
+  end
+end
+
+function advance_shifts_cyclic ()
+           (xshifts : [num_displayable_digits]int8)
+  var i : nat8 = 0
+  repeat
+    xshifts[i] = (xshifts[i] + 1)
+    if xshifts[i] > 8 then
+      xshifts[i] = -3
+    end
+    i = i + 1
+  until i >= num_displayable_digits end
+end
+
+function advance_shifts_inf ()
+            (xshifts : [num_displayable_digits]int8)
+  var i : nat8 = 0
+  repeat
+    xshifts[i] = (xshifts[i] + 1)
+    i = i + 1
+  until i >= num_displayable_digits end
+end
+
+function display_digits_all (head : nat8,
+            digits : [num_displayable_digits]bits8,
+            xshifts : [num_displayable_digits]int8)
+            (d : Display, capacity : nat8)
+  var i : nat8 = 0
+  repeat
+    if(xshifts[i] >= -2) then
+      add_digit (digits[i], {x=xshifts[i], y=1}) (d)
+    end
+    if xshifts[i] >= 8 then
+      capacity = capacity + 1
+    end
+    i = i + 1
+  until i >= num_displayable_digits end
+end
+
+function all_greater(xshifts : [num_displayable_digits]int8,
+                     bound : int8) returns bool
+  var i : nat8 = 0
+  var res : bool = true
+  repeat
+    if xshifts[i] <= bound then
+      res = false
+    end
+    i = i + 1
+  until i >= num_displayable_digits end
+  return res
+end
+
+activity blink_digits(head : nat8,
+            digits : [num_displayable_digits]bits8,
+            xshifts : [num_displayable_digits]int8)
+          (d : Display, capacity : nat8)
+  display_digits_all (head, digits, xshifts) (d, capacity)
+  draw_display(d)
+  run ut.delay(500)
+  clear_display() (d)
+  run ut.delay(100)
+  draw_display(d)
+end
+
+activity display_number (num : bits32)
+                         (d : Display)
+  clear_display()(d)
+  if num < 100 then
+    clear_display() (d)
+    write_2digit_number(num as! bits8, {x=0, y=1}) (d)
+    draw_display(d)
+  else
+    var xshifts : [num_displayable_digits]int8 = {-2, -6, -10}
+    var digits : [num_displayable_digits]bits8
+    var head : nat8 = 0
+    var num_left = num
+    var capacity : nat8 = 3
+    repeat
+      if capacity > 0 then
+        var digit = num_left%10
+        digits[head] = (digit as! bits8)
+        capacity = capacity - 1
+        num_left = num_left/10
+        head = (head + 1) % num_displayable_digits
+      end
+
+      advance_shifts_cyclic() (xshifts)
+      run blink_digits (head, digits, xshifts) (d, capacity)
+
+      if num_left <= 0 then
+        // display the rest of the digits
+        // until all xshifts are > 8 (do not use advance_shifts!)
+        repeat
+          advance_shifts_inf() (xshifts)
+          run blink_digits (head, digits, xshifts) (d, capacity)      
+        until all_greater(xshifts, 8) end
+      end
+    until num_left <= 0 end
+  end
+  await true
+end
+
+// TODO: "dir" should be an enum but these are not yet available
+function display_direction (dir : bits8) (d : Display)
+  clear_display()(d)
+  if dir & 2 == 2 then
+    add_msg(directions[0], {x=0, y=0})(d) 
+  end
+  draw_display(d)
+end

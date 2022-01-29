@@ -1,0 +1,17 @@
+import ajs "Analog_Joystick"
+import display "MAX_72XX"
+import ut "utils"
+
+@[EntryPoint]
+activity main ()
+  var d = display.init()
+  repeat
+    /*let x = ajs.read_direction()
+    if x != -1 then
+      display.display_direction(x)(d)
+    end*/
+    run display.display_number(ajs.read_direction())(d)
+    run ut.delay(1000)
+    display.erase_display()(d)
+  end
+end
