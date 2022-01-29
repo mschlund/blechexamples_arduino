@@ -25,3 +25,4 @@ All projects written for an Arduino-Board using [Blech](https://www.blech-lang.o
 7. DHT11: Measure temperature/humidity via a DHT11-sensor. [Blogpost](https://maximilianschlund.wordpress.com/2020/12/05/lesson-6-measuring-temperature-and-humidity-using-the-dht11/)
 8. DHT11_MQTT: Using the DHT11-sensor and sending its measurements to an MQTT-broker. [Blogpost](https://maximilianschlund.wordpress.com/2021/01/24/lesson-7-blech-on-the-esp8266-measuring-temperature-humidity-and-sending-via-mqtt/)
 9. matrix2bytes: a small python-script used as helper for my next project.
+10. LED_DotMatrix: controlling a MAX7219 LED-Display. [Blogpost](https://maximilianschlund.wordpress.com/2021/12/30/lesson-8-max7219-led-dot-matrix-display/)
