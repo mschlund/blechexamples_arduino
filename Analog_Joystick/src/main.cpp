@@ -48,9 +48,13 @@ void DEBUG(long x, int code) {
 }
 
 int read_X() {
-  return analogRead(X_PIN);
+  int x = analogRead(X_PIN);
+  Serial.println((String) "Xdir: " + x);
+  return x;
 }
 
 int read_Y() {
-    return analogRead(Y_PIN);
+  int y = analogRead(Y_PIN);
+  Serial.println((String) "Ydir: " + y);
+  return y;
 }

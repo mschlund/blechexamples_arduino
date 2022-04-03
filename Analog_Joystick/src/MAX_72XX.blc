@@ -45,8 +45,12 @@ param digits_3x5: [NUM_DIGITS][LEN] bits8 = {
   {0xe0, 0xa0, 0xe0, 0x20, 0xe0, 0x0, 0x0, 0x0} // 9 (3x5)
 }
 
-param directions : [1][LEN] bits8 = {
-  {0x0, 0x10, 0x10, 0x10, 0x7c, 0x38, 0x10, 0x0}, // v
+param directions: [4][LEN]bits8 = {
+    // NWSE:
+    {0x10, 0x38, 0x7c, 0x10, 0x10, 0x10, 0x10, 0x0}, // ^
+    {0x0, 0x20, 0x60, 0xfe, 0x60, 0x20, 0x0, 0x0},   // <
+    {0x0, 0x10, 0x10, 0x10, 0x7c, 0x38, 0x10, 0x0},  // v
+    {0x0, 0x4, 0x6, 0x7f, 0x6, 0x4, 0x0, 0x0},       // >
 }
 
 function draw_display (d : Display)
@@ -231,8 +235,14 @@ end
 // TODO: "dir" should be an enum but these are not yet available
 function display_direction (dir : bits8) (d : Display)
   clear_display()(d)
-  if dir & 2 == 2 then
+  if dir & 1 == 1 then
     add_msg(directions[0], {x=0, y=0})(d) 
+  elseif dir & 2 == 2 then
+    add_msg(directions[1], {x=0, y=0})(d)
+  elseif dir & 4 == 4 then
+    add_msg(directions[2], {x=0, y=0})(d)
+  elseif dir & 8 == 8 then
+    add_msg(directions[3], {x=0, y=0})(d)
   end
   draw_display(d)
 end

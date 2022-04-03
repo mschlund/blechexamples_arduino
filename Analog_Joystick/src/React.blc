@@ -6,12 +6,11 @@ import ut "utils"
 activity main ()
   var d = display.init()
   repeat
-    /*let x = ajs.read_direction()
-    if x != -1 then
-      display.display_direction(x)(d)
-    end*/
-    run display.display_number(ajs.read_direction())(d)
-    run ut.delay(1000)
+    let x = ajs.read_direction()
+    if x.d > 0 then
+      display.display_direction(x.d)(d)
+    end
+    run ut.delay(5000)
     display.erase_display()(d)
   end
 end

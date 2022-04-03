@@ -1,4 +1,6 @@
-module exposes read_direction
+import ut "utils" 
+module exposes read_direction, direction
+
 
 @[CFunction (binding = "read_X()", header = "env.h")]
 extern function read_X () returns bits32
@@ -6,14 +8,40 @@ extern function read_X () returns bits32
 @[CFunction (binding = "read_Y()", header = "env.h")]
 extern function read_Y () returns bits32
 
-function read_direction() returns bits32
+// directios in the form NWSE
+// currently saved as 4 bits, not exported (-> opaque type)
+struct direction
+  var d: bits8
+end
+
+const THRESHOLD_LOWER : bits32 = 200
+const THRESHOLD_UPPER : bits32 = 800
+const MAX_JOYSTICKVAL : bits32 = 1024
+
+function is_middle (x : bits32) returns bool
+  return THRESHOLD_LOWER < x and x < THRESHOLD_UPPER
+end
+
+function read_direction() returns direction
   let x = read_X()
   let y = read_Y()
-  var dir : bits8 = -1
-/*  if x > 700 then
-    dir = 0
+  var dir : direction = {d=0}
+  dir.d = 0
+
+  if is_middle(x) and y > THRESHOLD_UPPER then
+    // ^, North
+    dir.d |= 1
+  elseif x < THRESHOLD_LOWER and is_middle(y) then
+    // <, West
+    dir.d |= 2
+  elseif is_middle(x) and y < THRESHOLD_LOWER then
+    // v, South
+    dir.d |= 4
+  elseif x > THRESHOLD_UPPER and is_middle(y) then
+    // >, East
+    dir.d |= 8
   end
-  return dir */
-  return x
+
+  return dir
 end
 
