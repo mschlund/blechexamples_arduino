@@ -49,6 +49,7 @@ void DEBUG(long x, int code) {
 
 int read_X() {
   int x = analogRead(X_PIN);
+  x = 1024-x; // x seems switched...
   Serial.println((String) "Xdir: " + x);
   return x;
 }

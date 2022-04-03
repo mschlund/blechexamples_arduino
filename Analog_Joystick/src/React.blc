@@ -10,7 +10,7 @@ activity main ()
     if x.d > 0 then
       display.display_direction(x.d)(d)
     end
-    run ut.delay(5000)
+    run ut.delay(1000)
     display.erase_display()(d)
   end
 end
