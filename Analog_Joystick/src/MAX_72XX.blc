@@ -233,16 +233,10 @@ activity display_number (num : bits32)
 end
 
 // TODO: "dir" should be an enum but these are not yet available
-function display_direction (dir : bits8) (d : Display)
+function display_direction (index : bits8) (d : Display)
   clear_display()(d)
-  if dir & 1 == 1 then
-    add_msg(directions[0], {x=0, y=0})(d) 
-  elseif dir & 2 == 2 then
-    add_msg(directions[1], {x=0, y=0})(d)
-  elseif dir & 4 == 4 then
-    add_msg(directions[2], {x=0, y=0})(d)
-  elseif dir & 8 == 8 then
-    add_msg(directions[3], {x=0, y=0})(d)
+  if index >= 0 and (index as nat8) < LEN then
+    add_msg(directions[index], {x=0, y=0})(d)
   end
   draw_display(d)
 end

@@ -7,8 +7,8 @@ activity main ()
   var d = display.init()
   repeat
     let x = ajs.read_direction()
-    if x.d > 0 then
-      display.display_direction(x.d)(d)
+    if ajs.is_nontrivial(x) then
+      display.display_direction(ajs.dir_to_index(x))(d)
     end
     run ut.delay(1000)
     display.erase_display()(d)
