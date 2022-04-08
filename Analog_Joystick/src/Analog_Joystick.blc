@@ -1,5 +1,5 @@
 import ut "utils" 
-module exposes read_direction, is_nontrivial, dir_to_index
+module exposes read_direction, is_nontrivial, dir_to_index, equals
 
 
 @[CFunction (binding = "read_X()", header = "env.h")]
@@ -20,6 +20,10 @@ const MAX_JOYSTICKVAL : bits32 = 1024
 
 function is_middle (x : bits32) returns bool
   return THRESHOLD_LOWER < x and x < THRESHOLD_UPPER
+end
+
+function equals(dir1 : direction, dir2 : direction) returns bool
+  return dir1.d == dir2.d
 end
 
 function read_direction() returns direction
