@@ -20,9 +20,9 @@ activity main ()
       end
     with weak
       repeat
-        x = ajs.read_direction()
         changed = not ajs.equals(x, prev x)
         await true
+        x = ajs.read_direction()
       end
     end
     
