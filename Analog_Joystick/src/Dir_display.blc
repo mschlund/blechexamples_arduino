@@ -5,30 +5,42 @@ import ut "utils"
 @[EntryPoint]
 activity main ()
   var d = display.init()
-  repeat
-    var changed = false
-    var x = ajs.read_direction()
-    var timeout = false
+  // might not be nontrivial initially
+  var last_nontrivial_dir = ajs.read_direction()
 
-    cobegin weak
-      await changed
-      if ajs.is_nontrivial(x) then
-        // dir to index may be 0 if it is an impure direction ... check this (this would actually be good :)
-        display.display_direction(ajs.dir_to_index(x))(d)
+  repeat
+    var changed_dir = false
+    var x = ajs.read_direction()
+    cobegin
+      await ajs.is_nontrivial(x)
+      last_nontrivial_dir = x
+      // dir to index may be 0
+      // e.g. for a diagonal direction
+      display.display_direction(ajs.dir_to_index(x))(d)
+      // leave the displayed direction
+      // on for some time
+      await not changed_dir
+
+      when changed_dir abort
+        run ut.delay(500)
       end
-      when changed abort
-        run ut.delay(1000)        
-      end
+
     with weak
       repeat
-        changed = not ajs.equals(x, prev x)
+        if ajs.is_nontrivial(x) then
+          if not ajs.equals(x, last_nontrivial_dir) then
+            changed_dir = true
+          else
+            changed_dir = false
+          end
+        end
         await true
         x = ajs.read_direction()
       end
     end
-    
     display.erase_display()(d)
-
+    changed_dir = false
     await true
   end
+
 end

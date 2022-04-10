@@ -1,7 +1,7 @@
 #include <Arduino.h>
 extern "C" {
   #include "env.h"
-  #include "React.h"
+  #include "Dir_display.h"
 }
 
 void setup() {
@@ -12,7 +12,7 @@ void setup() {
   pinMode(DATA_PIN, OUTPUT);
   digitalWrite(CS_PIN, HIGH);
 
-  blc_blech_01React01_init();
+  blc_blech_01Dir_display01_init();
   
   //wake up (optional?)
   write_data_to_reg(0x0C,0x01);
@@ -28,7 +28,7 @@ void setup() {
 }
 
 void loop() {
-  blc_blech_01React01_tick();
+  blc_blech_01Dir_display01_tick();
   delay(MILLIS_PER_TICK);
 }
 
