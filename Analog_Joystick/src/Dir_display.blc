@@ -13,6 +13,7 @@ activity main ()
     cobegin weak
       await changed
       if ajs.is_nontrivial(x) then
+        // dir to index may be 0 if it is an impure direction ... check this (this would actually be good :)
         display.display_direction(ajs.dir_to_index(x))(d)
       end
       when changed abort
