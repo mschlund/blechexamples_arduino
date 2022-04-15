@@ -232,7 +232,6 @@ activity display_number (num : bits32)
   await true
 end
 
-// TODO: "dir" should be an enum but these are not yet available
 function display_direction (index : bits8) (d : Display)
   clear_display()(d)
   if index >= 0 and (index as nat8) < LEN then

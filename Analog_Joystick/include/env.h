@@ -3,7 +3,7 @@
 
 #include "blech.h"
 
-#define MILLIS_PER_TICK 5
+#define MILLIS_PER_TICK 1
 
 #define CLOCK_PIN 12
 #define CS_PIN 11

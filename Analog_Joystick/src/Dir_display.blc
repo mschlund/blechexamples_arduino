@@ -28,11 +28,7 @@ activity main ()
     with weak
       repeat
         if ajs.is_nontrivial(x) then
-          if not ajs.equals(x, last_nontrivial_dir) then
-            changed_dir = true
-          else
-            changed_dir = false
-          end
+          changed_dir = not ajs.equals(x, last_nontrivial_dir)
         end
         await true
         x = ajs.read_direction()
