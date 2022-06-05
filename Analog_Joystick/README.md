@@ -10,4 +10,4 @@ $ make
 
 and then build the project using PlatformIO in vscode (the main file is src/main.cpp).
 
-See the corresponding blog-post for this mini-project: (tbd)
+See the corresponding blog-post for this mini-project: https://maximilianschlund.wordpress.com/2022/04/15/lesson-9-joystick-and-displaying-directions/
